@@ -1,5 +1,6 @@
 {
-  "name": "mini-client-controller",
+  "name": "youtube-remote-control-web",
+  "description": "Youtube Remote Control Web is the code repository for the website to remotely control youtube",
   "private": true,
   "type": "module",
   "scripts": {
