@@ -1,3 +1,4 @@
+import { ConvexProvider, ConvexReactClient } from "convex/react";
 import {
   isRouteErrorResponse,
   Links,
@@ -41,8 +42,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+
 export default function App() {
-  return <Outlet />;
+  return (
+    <ConvexProvider client={convex}>
+      <Outlet />
+    </ConvexProvider>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
