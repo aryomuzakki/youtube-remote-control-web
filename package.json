@@ -2,6 +2,7 @@
   "name": "youtube-remote-control-web",
   "description": "Youtube Remote Control Web is the code repository for the website to remotely control youtube",
   "private": true,
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "build": "react-router build",
