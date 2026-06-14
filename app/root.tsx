@@ -42,13 +42,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+const queryClient = new QueryClient();
 
 export default function App() {
   return (
-    <ConvexProvider client={convex}>
-      <Outlet />
-    </ConvexProvider>
+    <QueryClientProvider client={queryClient}>
+      <ConvexProvider client={convex}>
+        <Outlet />
+      </ConvexProvider>
+    </QueryClientProvider>
   );
 }
 

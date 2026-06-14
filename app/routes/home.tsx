@@ -1,5 +1,7 @@
 import type { Route } from "./+types/home";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Button } from "../components/ui/button";
@@ -15,12 +17,26 @@ export function meta(_args: Route.MetaArgs) {
 }
 
 export default function Home() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [roomId, setRoomId] = useState<string>("");
   const [activeRoomId, setActiveRoomId] = useState<string>("");
   
   useEffect(() => {
-    const saved = localStorage.getItem("yt_roomId");
-    if (saved) setActiveRoomId(saved);
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlRoom = urlParams.get("room");
+    if (urlRoom) {
+      setActiveRoomId(urlRoom);
+      setRoomId(urlRoom);
+      localStorage.setItem("yt_roomId", urlRoom);
+      setSearchParams({}, { replace: true });
+    } else {
+      const saved = localStorage.getItem("yt_roomId");
+      if (saved) {
+        setActiveRoomId(saved);
+        setRoomId(saved);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleConnect = (e: React.FormEvent) => {
@@ -70,6 +86,23 @@ function RemoteControl({ roomId, onDisconnect }: { roomId: string; onDisconnect:
   const pushCommand = useMutation(api.commands.pushCommand);
   const [url, setUrl] = useState("");
 
+  const { data: roomState, error: queryError, isError } = useQuery({
+    queryKey: ["room", roomId],
+    queryFn: async () => {
+      const serverUrl = import.meta.env.VITE_SERVER_URL;
+      if (!serverUrl) throw new Error("Server URL not configured");
+      const res = await fetch(`${serverUrl}/api/rooms/${roomId}`);
+      if (!res.ok) {
+        throw new Error(res.status === 404 ? "Invalid Room Code" : "Failed to fetch room");
+      }
+      return await res.json();
+    },
+    // refetchInterval: 5000,
+    retry: 1,
+  });
+
+  const error = isError ? (queryError as Error).message : "";
+
   const handleCommand = (action: "PLAY" | "PAUSE" | "NEXT" | "PREV") => {
     pushCommand({ roomId, action });
   };
@@ -96,8 +129,19 @@ function RemoteControl({ roomId, onDisconnect }: { roomId: string; onDisconnect:
           </Button>
         </div>
 
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-2xl text-center text-sm font-medium">
+            {error}
+          </div>
+        )}
+        {!error && roomState && !roomState.extensionEnabled && (
+          <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 p-4 rounded-2xl text-center text-sm font-medium">
+            The host extension is currently disabled.
+          </div>
+        )}
+
         {/* Media Controls */}
-        <Card className="bg-zinc-900 border-zinc-800 shadow-2xl overflow-hidden">
+        <Card className={`bg-zinc-900 border-zinc-800 shadow-2xl overflow-hidden transition-opacity ${(!roomState?.extensionEnabled || !!error) ? 'opacity-50 pointer-events-none' : ''}`}>
           <CardContent className="p-6 sm:p-8">
             <div className="grid grid-cols-2 gap-4 mb-4">
               <Button 
@@ -148,7 +192,7 @@ function RemoteControl({ roomId, onDisconnect }: { roomId: string; onDisconnect:
         </Card>
 
         {/* URL Form */}
-        <Card className="bg-zinc-900 border-zinc-800 shadow-2xl">
+        <Card className={`bg-zinc-900 border-zinc-800 shadow-2xl transition-opacity ${(!roomState?.extensionEnabled || !!error) ? 'opacity-50 pointer-events-none' : ''}`}>
           <CardHeader className="pb-4">
             <CardTitle className="text-zinc-100 flex items-center gap-2 text-base sm:text-lg">
               <LinkIcon className="w-5 h-5 text-zinc-400" />
